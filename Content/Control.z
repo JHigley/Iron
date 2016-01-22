@@ -1,0 +1,41 @@
+class Control : ZilchComponent
+{
+    
+    function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+        Zero.Connect(this.Owner, Events.CollisionStarted, this.OnCollision);
+    }
+
+    function OnLogicUpdate(event : UpdateEvent)
+    {
+        var movement = Real3(0,0,0);
+        
+        if(Zero.Keyboard.KeyIsDown(Keys.Right)){
+            movement.X += 1;
+        }
+        
+        if(Zero.Keyboard.KeyIsDown(Keys.Left)){
+            movement.X -= 1;
+        }
+        
+        if(Zero.Keyboard.KeyIsPressed(Keys.Up)){
+            this.Owner.SweptController.JumpUnconditionally();
+        }
+
+        this.Owner.SweptController.Update(movement, event.Dt);
+        
+        var vel = this.Space.FindObjectByName("Player").RigidBody.Velocity.Y;
+        
+        this.Space.FindObjectByName("Velocity").SpriteText.Text = "`vel`";
+    }
+    
+    function OnCollision(event : CollisionEvent)
+    {
+        var vObj = event.OtherObject;
+        
+        if(vObj.Name == "Ground" ){
+            Console.WriteLine("Test");
+        }
+    }
+}

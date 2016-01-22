@@ -1,0 +1,60 @@
+// Teleport On Collision
+// Brief: Teleport collided object to a specified position.
+class TeleportOnCollision : ZilchComponent
+{
+    // This is a loose dependency, based on the object's need to receive 
+    // Collision events in order to see the functionality of this script.
+    [Dependency]
+    var Collider : Collider = null;
+    
+    // Determines if the component is active
+    [Property]
+    var Active : Boolean = true;
+    
+    // The object to be teleported on collision. If not defined all objects are teleported.
+    [Property]
+    var WatchObject : CogPath = null;
+    
+    // Position for objects to be teleported to if no target object is defined
+    [Property]
+    var TargetPosition : Real3 = Real3();
+    
+    // Object for collided object to be teleported
+    [Property]
+    var TargetObject : CogPath = null;
+    
+    function Initialize(init : CogInitializer)
+    {
+        Zero.Connect(this.Owner, Events.CollisionStarted, this.OnCollision);
+    }
+
+    function OnCollision(event : CollisionEvent)
+    {
+        // If the component is not active do not do anything
+        if(!this.Active)
+        {
+            return;
+        }
+        
+        // If there is an object being watched
+        if(this.WatchObject.Cog != null)
+        {
+            // If the object hit is not the watch object do nothing
+            if(this.WatchObject.Cog != event.OtherObject)
+            {
+                return;
+            }
+        }
+        
+        // If there is a target object use its position
+        if(this.TargetObject.Cog != null)
+        {
+            event.OtherObject.Transform.Translation = this.TargetObject.Cog.Transform.Translation;
+        }
+        // Otherwise use the target position
+        else
+        {
+            event.OtherObject.Transform.Translation = this.TargetPosition;
+        }
+    }
+}

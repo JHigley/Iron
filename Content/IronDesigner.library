@@ -1,0 +1,7 @@
+ContentLibrary = 
+{
+	string Name = "IronDesigner",
+	uint64 LibraryId = 5317e1e0ad357ed7,
+	string SourceControlType = "",
+	bool ReadOnly = false,
+},

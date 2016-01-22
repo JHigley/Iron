@@ -1,0 +1,82 @@
+// Component: ScreenWrap
+// Brief: Will cause an object to appear on the opposite edge of the screen it crosses.
+// This component requires that the game be 2D it will use the plane the object defines 
+// in its orientation component as the plane to wrap on.
+class ScreenWrap : ZilchComponent
+{
+    // This component requires an orientation component
+    [Dependency]
+    var Orientation : Orientation = null;
+    
+    // A camera can be specified here if the user does not have there cameraviewport on the level settings
+    [Property]
+    var ViewportObj : CogPath = null;
+    
+    //Used to store a reference to the viewport component
+    var Viewport : CameraViewport = null;
+    
+    // Used to store a reference to the camera object for the level
+    // The component will get the camera object off the levelsettings object's camera viewport if no viewport object is chosen in the property window
+    var CameraObj : Cog = null;
+    
+    function Initialize(init : CogInitializer)
+    {
+        // Initialize the camera and viewport variables with user-defined object components
+        if(this.ViewportObj.Cog != null)
+        {
+            this.Viewport = this.ViewportObj.Cog.CameraViewport;
+            this.CameraObj = this.Viewport.Camera;
+        }
+        else
+        {
+            //Check to make sure the level settings object has a camera viewport
+            if(this.LevelSettings.CameraViewport == null)
+            {
+                Console.WriteLine("No viewport object is defined, and Camera Viewport Component not attach to the Level Settings Object, did you move it?");
+                this.GameSession.Quit();
+            }
+            // Since the user did not define a viewport object use the levelsettings viewport
+            else
+            {
+                this.Viewport = this.LevelSettings.CameraViewport;
+                this.CameraObj = this.Viewport.Camera;
+            }
+        }
+        
+        Zero.Connect(this.Space, Events.LogicUpdate, this.OnLogicUpdate);
+    }
+    
+    function OnLogicUpdate(updateEvent : UpdateEvent)
+    {
+        // Get the object's screen pos and convert it to viewport space
+        var screenpos = this.Viewport.WorldToScreen(this.Owner.Transform.Translation);
+        var viewportpos = this.Viewport.ScreenToViewport(screenpos);
+        
+        // If the object is off the right screen edge move it to the left
+        if (viewportpos.X > this.Viewport.ViewportResolution.X)
+        {
+            viewportpos.X = 0.0;
+        }
+        // If the object is off the left screen edge move it to the right
+        else if (viewportpos.X  < 0.0)
+        {
+            viewportpos.X = this.Viewport.ViewportResolution.X;
+        }
+        
+        // If the object is off the top screen edge move it to the bottom
+        if (viewportpos.Y > this.Viewport.ViewportResolution.Y)
+        {
+            viewportpos.Y = 0.0;
+        }
+        // If the object is off the bottom screen edge move it to the top
+        else if (viewportpos.Y < 0.0)
+        {
+            viewportpos.Y = this.Viewport.ViewportResolution.Y;
+        }
+        
+        // Convert back to screen space
+        screenpos = this.Viewport.ViewportToScreen(viewportpos);
+        // Convert back to world space
+        this.Owner.Transform.Translation = this.Viewport.ScreenToWorldPlane(screenpos, this.Orientation.LocalUp, this.Owner.Transform.Translation);
+    }
+}

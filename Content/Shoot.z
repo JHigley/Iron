@@ -1,0 +1,100 @@
+// Shoot
+// Brief: Will make the object fire instances of the given bullet archetype at a given target object
+class Shoot : ZilchComponent
+{
+    [Dependency]
+    var Transform : Transform = null;
+    
+    // Determines if the component should be active
+    [Property]
+    var Active : Boolean = true;
+    
+    // The target object to shoot at
+    // NOTE: TARGET MUST HAVE A TRANSFORM
+    // NOTE: TO USE PREDICTIVE AIMING TARGET MUST HAVE A RIGIDBODY
+    [Property]
+    var Target : CogPath = null;
+    
+    // The archetype of the object to be shot
+    // NOTE: BULLET ARCHETYPE MUST HAVE TRANSFORM & RIGIDBODY
+    [Property]
+    var BulletArchetype : Archetype = null;
+    
+    // Determines if bullets should be aimed directly at the target object
+    // or where the target object will be
+    // NOTE: TO USE PREDICTIVE AIMING TARGET MUST HAVE A RIGIDBODY
+    [Property]
+    var PredictiveAiming : Boolean = false;
+    
+    // Only use if Predictive Aiming is selected
+    // Determines the length of the vector used to predict the target object's future position
+    [Property]
+    var PredictionStrength : Real = 1.0;
+    
+    // The rate at which the object will shoot the given bullet archetype
+    [Property]
+    var FireRate : Real = 1.0;
+    
+    // The initial magnitude of the velocity given to bullets
+    [Property]
+    var FireSpeed : Real = 100.0;
+    
+    function Initialize(init : CogInitializer)
+    {
+        // If the component is initially active start the repeating shooting cycle
+        if(this.Active)
+        {
+            this.SetRepeat();
+        }
+    }
+    
+    // Starts the repeating shooting action sequence
+    function Activate()
+    {
+        this.Active = true;
+        this.SetRepeat();
+    }
+    
+    // Stops the shoot action sequence
+    function Deactivate()
+    {
+        this.Active = false;
+        this.Owner.Actions.Cancel();
+    }
+    
+    function SetRepeat()
+    {
+        // Confirm the object's action set is clear
+        this.Owner.Actions.Cancel();
+        
+        // Create an action sequence for the next shot
+        var seq = Action.Sequence(this.Owner.Actions as ActionSet);
+        Action.Call(seq, this.Shoot);
+        Action.Delay(seq, this.FireRate);
+        Action.Call(seq, this.SetRepeat);
+    }
+    
+    // Performs the actual shooting functionality
+    function Shoot()
+    {
+        // Set the target position of the shot to the default target object's position
+        var targPos : Real3 = this.Target.Cog.Transform.Translation;
+        
+        // If predictive aiming is selected then use the velocity to predict the future 
+        // position of the target object
+        if(this.PredictiveAiming && this.Target.Cog != null)
+        {
+            var vel = Math.Normalize(this.Target.Cog.RigidBody.Velocity);
+            targPos += vel * this.PredictionStrength;
+        }
+        
+        // Calculate the direction the bullet should be shot in
+        var targDir : Real3 = Math.Normalize(targPos - this.Owner.Transform.Translation);
+        
+        // Create the bullet to be shot
+        var bullet : Cog = this.Space.CreateAtPosition(this.BulletArchetype, this.Owner.Transform.Translation);
+        
+        // Set the bullet's velocity to move toward the target position
+        bullet.RigidBody.ApplyLinearVelocity(targDir * this.FireSpeed);
+    }
+}
